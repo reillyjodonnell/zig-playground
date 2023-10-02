@@ -12,8 +12,45 @@ fn getRandomNumber(seed: u64) !u8 {
     return @mod(rand_impl.random().int(u8), 100);
 }
 
-fn handleUserResponse() !void {
-    std.log.info("Guess the number!", .{});
+fn handleUserResponse(number: u8) !void {
+    // keyboard input is emitted as an interrupt which the kernel handles
+    // its then stored in the buffer which we can read from using the reader
+    const in = std.io.getStdIn();
+    var buf = std.io.bufferedReader(in.reader());
+    // Get the Reader interface from BufferedReader
+    var r = buf.reader();
+
+    var correct = false;
+
+    while (correct == false) {
+        std.debug.print("Guess a number: ", .{});
+        var msg_buf: [4096]u8 = undefined;
+        var fbs = std.io.fixedBufferStream(&msg_buf);
+        try r.streamUntilDelimiter(fbs.writer(), '\n', fbs.buffer.len);
+        const guess = fbs.getWritten();
+
+        const formattedGuess = std.fmt.parseInt(u8, guess, 10) catch |err| switch (err) {
+            error.Overflow => {
+                continue;
+            },
+            error.InvalidCharacter => {
+                continue;
+            },
+        };
+
+        if (formattedGuess == number) {
+            std.debug.print("Correct!\n", .{});
+            correct = true;
+            return;
+        }
+        if (formattedGuess < number) {
+            std.debug.print("It's higher. ", .{});
+        }
+        if (formattedGuess > number) {
+            std.debug.print("It's lower. ", .{});
+        }
+        std.debug.print("Try again\n", .{});
+    }
 }
 
 pub fn main() !void {
@@ -24,7 +61,7 @@ pub fn main() !void {
 
     std.debug.print("Random number: {}\n", .{number});
 
-    try handleUserResponse();
+    try handleUserResponse(number);
 }
 
 test "test getSeed" {
