@@ -5,8 +5,5 @@ pub fn main() !void {
     var end: usize = 4;
     const b = a[1..end];
 
-    // b has both a len and a pointer
-    std.debug.print("{*}\n", .{&b.len});
-    std.debug.print("{*}\n", .{&b.ptr});
-    std.debug.print("b: {*}\n", .{&b});
+    std.debug.print("Type of b: {s}\n", .{@typeName(@TypeOf(b))});
 }
