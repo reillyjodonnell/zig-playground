@@ -1,6 +1,10 @@
 const std = @import("std");
 const print = std.debug.print;
 
+const AllocationError = error{
+    OutOfMemory,
+};
+
 const Stack = struct {
     items: []u8,
     pos: usize,
@@ -15,7 +19,11 @@ const Stack = struct {
         self.allocator.free(self.items);
     }
 
-    fn push(self: *Stack, item: u8) void {
+    fn push(self: *Stack, item: u8) !void {
+        if (self.pos == self.items.len) {
+            const successfullyResized = self.allocator.resize(self.items, self.items.len * 2);
+            if (!successfullyResized) return error.OutOfMemory;
+        }
         self.items[self.pos] = item;
         self.pos = self.pos + 1;
     }
@@ -34,8 +42,27 @@ pub fn main() !void {
     const allocator = gpa.allocator();
     var myStack = try Stack.init(allocator);
     defer myStack.deinit();
-    myStack.push(1);
-    myStack.push(2);
+    try myStack.push(1);
+    try myStack.push(2);
+    try myStack.push(1);
+    try myStack.push(2);
+    try myStack.push(1);
+    try myStack.push(2);
+    try myStack.push(1);
+    try myStack.push(2);
+    try myStack.push(1);
+    try myStack.push(2);
+    try myStack.push(1);
+    try myStack.push(2);
+    try myStack.push(1);
+    try myStack.push(2);
+    try myStack.push(1);
+    try myStack.push(2);
+    try myStack.push(1);
+    try myStack.push(2);
+    try myStack.push(1);
+    try myStack.push(20);
+    // 21
 
     print("length: {}\n", .{myStack.items.len});
 
@@ -51,8 +78,8 @@ test "struct" {
     const allocator = gpa.allocator();
     var myStack = try Stack.init(allocator);
     defer myStack.deinit();
-    myStack.push(1);
-    myStack.push(2);
+    try myStack.push(1);
+    try myStack.push(2);
     myStack.pop();
     try expect(myStack.length() == 1);
 }
