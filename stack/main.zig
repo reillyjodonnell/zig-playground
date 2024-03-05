@@ -15,14 +15,23 @@ const Stack = struct {
         return stack;
     }
 
-    fn deinit(self: Stack) void {
+    fn deinit(self: *Stack) void {
         self.allocator.free(self.items);
     }
 
     fn push(self: *Stack, item: u8) !void {
         if (self.pos == self.items.len) {
-            const successfullyResized = self.allocator.resize(self.items, self.items.len * 2);
-            if (!successfullyResized) return error.OutOfMemory;
+            // Allocate new space double the size
+            const newSlice = try self.allocator.alloc(u8, self.items.len * 2);
+
+            // Copy the old items to the new space
+            std.mem.copy(u8, newSlice[0..self.pos], self.items[0..self.pos]);
+
+            // Deallocate the old space
+            self.allocator.free(self.items);
+
+            // Update the items pointer to the new space
+            self.items = newSlice;
         }
         self.items[self.pos] = item;
         self.pos = self.pos + 1;
@@ -35,6 +44,10 @@ const Stack = struct {
     fn length(self: *Stack) usize {
         return self.pos;
     }
+
+    fn peek(self: *Stack) u8 {
+        return self.items[self.pos];
+    }
 };
 
 pub fn main() !void {
@@ -42,32 +55,12 @@ pub fn main() !void {
     const allocator = gpa.allocator();
     var myStack = try Stack.init(allocator);
     defer myStack.deinit();
-    try myStack.push(1);
-    try myStack.push(2);
-    try myStack.push(1);
-    try myStack.push(2);
-    try myStack.push(1);
-    try myStack.push(2);
-    try myStack.push(1);
-    try myStack.push(2);
-    try myStack.push(1);
-    try myStack.push(2);
-    try myStack.push(1);
-    try myStack.push(2);
-    try myStack.push(1);
-    try myStack.push(2);
-    try myStack.push(1);
-    try myStack.push(2);
-    try myStack.push(1);
-    try myStack.push(2);
-    try myStack.push(1);
-    try myStack.push(20);
-    // 21
 
     print("length: {}\n", .{myStack.items.len});
 
-    for (myStack.items[0..myStack.pos]) |item| {
-        print("item: {}\n", .{item});
+    for (0.., myStack.items.len) |i, elem| {
+        _ = elem;
+        print("item: {any}\n", .{i});
     }
 }
 
@@ -82,4 +75,19 @@ test "struct" {
     try myStack.push(2);
     myStack.pop();
     try expect(myStack.length() == 1);
+
+    myStack.pop();
+    try expect(myStack.length() == 0);
+}
+
+test "struct peek" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    var myStack = try Stack.init(allocator);
+    defer myStack.deinit();
+    try myStack.push(1);
+    try myStack.push(2);
+    myStack.pop();
+    const topItem = myStack.peek();
+    try expect(topItem == 2);
 }
